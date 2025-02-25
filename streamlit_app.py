@@ -1,7 +1,7 @@
 import os
-import time
 import streamlit as st
-from requests_html import HTMLSession
+import httpx
+from selectolax.parser import HTMLParser
 from twilio.rest import Client
 
 # Twilio konfigurasjon (Bruk secrets eller .env for sikkerhet)
@@ -20,16 +20,20 @@ st.write("Sjekk om Kasernen P-hus er ledig og få SMS-varsling!")
 phone_number = st.text_input("📱 Ditt telefonnummer (+47...)", "")
 
 def check_parking_availability():
-    """Bruker requests_html for å hente data fra en JavaScript-ladet side."""
+    """Bruker httpx og selectolax for å sjekke om parkering er ledig."""
     try:
-        session = HTMLSession()
-        response = session.get(BOOKING_URL)
-        response.html.render(timeout=20)  # Kjører JavaScript
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = httpx.get(BOOKING_URL, headers=headers, timeout=10)
+        
+        if response.status_code != 200:
+            st.error("⚠️ Kunne ikke hente nettsiden. Sjekk URL-en.")
+            return False
 
-        # Hent all tekst på siden etter at den er rendret
-        page_text = response.html.text
+        # Parse HTML med selectolax
+        tree = HTMLParser(response.text)
 
-        if "Utsolgt" in page_text:
+        # Sjekk om "Utsolgt" finnes på siden
+        if "Utsolgt" in tree.text():
             return False
         else:
             return True
