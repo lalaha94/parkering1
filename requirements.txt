@@ -2,3 +2,5 @@ httpx
 selectolax
 twilio
 streamlit
+smtplib
+email
