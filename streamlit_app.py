@@ -29,8 +29,16 @@ def check_parking_availability():
             st.error("⚠️ Kunne ikke hente nettsiden. Sjekk URL-en.")
             return False
 
+        # Logg hele HTML-en vi mottar
+        raw_html = response.text
+        with open("debug_page.html", "w", encoding="utf-8") as file:
+            file.write(raw_html)
+        
         # Parse HTML med selectolax
-        tree = HTMLParser(response.text)
+        tree = HTMLParser(raw_html)
+
+        # Sjekk hva HTML-en inneholder
+        st.text_area("🔍 Debug HTML", raw_html, height=300)
 
         # Sjekk om "Utsolgt" finnes på siden
         if "Utsolgt" in tree.text():
