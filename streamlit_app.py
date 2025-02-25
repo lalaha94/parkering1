@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 import httpx
+import time
 from selectolax.parser import HTMLParser
 from twilio.rest import Client
 
@@ -20,12 +21,12 @@ st.write("Sjekk om Kasernen P-hus er ledig og få SMS-varsling!")
 phone_number = st.text_input("📱 Ditt telefonnummer (+47...)", "")
 
 def check_parking_availability():
-    """Følger redirect, finner riktig side og sjekker om parkering er ledig."""
+    """Følger redirect, venter på riktig side og sjekker om parkering er utsolgt."""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
 
-        # 1️⃣ Hent første side (redirect-side)
         with httpx.Client(headers=headers, follow_redirects=True) as client:
+            # 1️⃣ Hent første side (kan være en redirect-side)
             response = client.get(BOOKING_URL, timeout=10)
 
             if response.status_code != 200:
@@ -36,26 +37,36 @@ def check_parking_availability():
             final_url = str(response.url)  # Dette er den virkelige siden der "Utsolgt" vises
             st.write(f"🔄 Omdirigert til: {final_url}")  # Debugging
 
-            # 3️⃣ Hent den faktiske siden
+            # 3️⃣ Vent 5 sekunder for å gi Angular tid til å laste inn innholdet
+            time.sleep(5)
+
+            # 4️⃣ Hent den endelige siden
             response = client.get(final_url, timeout=10)
             if response.status_code != 200:
                 st.error("⚠️ Kunne ikke hente den endelige siden.")
                 return False
 
-            # 4️⃣ Parse HTML
+            # 5️⃣ Parse HTML
             tree = HTMLParser(response.text)
 
-            # 5️⃣ Finn `<i18n>`-elementet med klassen "negative"
-            sold_out_element = tree.css_first("i18n.negative")
+            # 6️⃣ Lagre HTML for debugging
+            with open("debug_page_final.html", "w", encoding="utf-8") as file:
+                file.write(response.text)
 
-            # 6️⃣ Debug: Vis hele HTML-en
             st.text_area("🔍 Debug HTML (Final Page)", response.text, height=300)
 
-            # 7️⃣ Hvis elementet finnes og inneholder "Utsolgt", er det utsolgt
+            # 7️⃣ Finn "Utsolgt" i riktig element
+            sold_out_element = tree.css_first("i18n.negative")
+
+            # 8️⃣ Hvis elementet finnes og inneholder "Utsolgt", er det utsolgt
             if sold_out_element and "Utsolgt" in sold_out_element.text():
-                return False
+                return False  # Parkeringsplassen er utsolgt
             else:
-                return True
+                return True  # Parkeringsplassen er ledig
+
+    except Exception as e:
+        st.error(f"⚠️ Feil ved sjekk: {e}")
+        return False
 
     except Exception as e:
         st.error(f"⚠️ Feil ved sjekk: {e}")
