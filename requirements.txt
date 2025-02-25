@@ -1,4 +1,6 @@
 streamlit
 requests
+selenium
+webdriver-manager
 twilio
-beautifulsoup4
+
