@@ -42,20 +42,24 @@ def check_parking_availability():
                 st.error("⚠️ Kunne ikke hente den endelige siden.")
                 return False
 
-            # 4️⃣ Parse HTML og sjekk for "Utsolgt"
+            # 4️⃣ Parse HTML
             tree = HTMLParser(response.text)
 
-            # Lagre HTML for debugging
-            with open("debug_page_final.html", "w", encoding="utf-8") as file:
-                file.write(response.text)
+            # 5️⃣ Finn `<i18n>`-elementet med klassen "negative"
+            sold_out_element = tree.css_first("i18n.negative")
 
+            # 6️⃣ Debug: Vis hele HTML-en
             st.text_area("🔍 Debug HTML (Final Page)", response.text, height=300)
 
-            # 5️⃣ Se etter "Utsolgt"
-            if "Utsolgt" in tree.text():
+            # 7️⃣ Hvis elementet finnes og inneholder "Utsolgt", er det utsolgt
+            if sold_out_element and "Utsolgt" in sold_out_element.text():
                 return False
             else:
                 return True
+
+    except Exception as e:
+        st.error(f"⚠️ Feil ved sjekk: {e}")
+        return False
 
     except Exception as e:
         st.error(f"⚠️ Feil ved sjekk: {e}")
