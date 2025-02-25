@@ -1,6 +1,4 @@
-streamlit
-requests
 selenium
 webdriver-manager
 twilio
-
+streamlit
