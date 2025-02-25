@@ -21,18 +21,24 @@ def check_parking_availability():
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # Finn elementet som inneholder "Utsolgt"
-        sold_out_element = soup.find("i18n", class_="negative")
+        # Logg hele HTML for debugging (valgfritt, men nyttig)
+        with open("page_source.html", "w", encoding="utf-8") as file:
+            file.write(soup.prettify())
 
-        if sold_out_element and "Utsolgt" in sold_out_element.text:
+        # 1️⃣ Sjekk etter "Utsolgt" i spesifikke elementer
+        sold_out_element = soup.find("i18n", class_="negative")
+        if sold_out_element and "Utsolgt" in sold_out_element.get_text(strip=True):
             print("🚧 Parkeringsplassen er fortsatt utsolgt.")
             return False
-        elif "Utsolgt" in soup.text:  # Ekstra sjekk i tilfelle formatet endres
+
+        # 2️⃣ Sjekk om "Utsolgt" finnes i hele nettsidens tekst
+        if "Utsolgt" in soup.get_text():
             print("🚧 Parkeringsplassen er fortsatt utsolgt.")
             return False
-        else:
-            print("🎉 Parkeringsplassen er LEDIG!")
-            return True
+
+        # 3️⃣ Hvis vi ikke fant "Utsolgt", antar vi at den er ledig
+        print("🎉 Parkeringsplassen er LEDIG!")
+        return True
 
     except requests.RequestException as e:
         print(f"⚠️ Feil ved henting av booking-siden: {e}")
