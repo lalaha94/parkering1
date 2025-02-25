@@ -37,25 +37,6 @@ def check_booking_page():
         return False
 
 
-def check_booking_page():
-    """Sjekker om parkeringsabonnementet er ledig."""
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(BOOKING_URL, headers=headers)
-        response.raise_for_status()
-
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        if "Utsolgt" in soup.text:
-            print("🚧 Parkeringsplassen er fortsatt utsolgt.")
-            return False
-        else:
-            print("🎉 Parkeringsplassen er LEDIG!")
-            return True
-
-    except requests.RequestException as e:
-        print(f"⚠️ Feil ved henting av booking-siden: {e}")
-        return False
 
 def send_sms():
     """Sender en SMS-varsling hvis parkering er ledig."""
