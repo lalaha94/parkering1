@@ -21,24 +21,35 @@ if "history" not in st.session_state:
     st.session_state.history = []
 
 def check_parking_availability():
-    """Følger redirect og sjekker om parkering er tilgjengelig."""
+    """Følger redirect og lagrer HTML-en for debugging."""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        
-        # Følg redirect til riktig side
+
         with httpx.Client(headers=headers, follow_redirects=True) as client:
             response = client.get(BOOKING_URL, timeout=10)
 
             if response.status_code != 200:
+                st.error("⚠️ Kunne ikke hente nettsiden.")
                 return False
 
+            # Logg og vis HTML for debugging
+            raw_html = response.text
+            with open("debug_page.html", "w", encoding="utf-8") as file:
+                file.write(raw_html)
+
+            st.text_area("🔍 Debug HTML", raw_html, height=300)
+
             # Parse HTML
-            tree = HTMLParser(response.text)
+            tree = HTMLParser(raw_html)
 
-            # Sjekk om "Utsolgt" finnes
-            return "Utsolgt" not in tree.text()
+            # Finn om "Utsolgt" finnes i HTML-en
+            if "Utsolgt" in tree.text():
+                return False
+            else:
+                return True
 
-    except Exception:
+    except Exception as e:
+        st.error(f"⚠️ Feil ved sjekk: {e}")
         return False
 
 def send_sms(phone):
