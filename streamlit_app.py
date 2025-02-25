@@ -1,10 +1,7 @@
 import os
 import time
 import streamlit as st
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from requests_html import HTMLSession
 from twilio.rest import Client
 
 # Twilio konfigurasjon (Bruk secrets eller .env for sikkerhet)
@@ -22,21 +19,15 @@ st.write("Sjekk om Kasernen P-hus er ledig og få SMS-varsling!")
 # Input for telefonnummer
 phone_number = st.text_input("📱 Ditt telefonnummer (+47...)", "")
 
-# Funksjon for å sjekke parkeringsstatus
 def check_parking_availability():
-    """Bruker Selenium for å sjekke om parkering er ledig."""
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-
+    """Bruker requests_html for å hente data fra en JavaScript-ladet side."""
     try:
-        driver.get(BOOKING_URL)
-        time.sleep(5)  # Vent på at siden laster inn
-        page_text = driver.page_source
-        driver.quit()
+        session = HTMLSession()
+        response = session.get(BOOKING_URL)
+        response.html.render(timeout=20)  # Kjører JavaScript
+
+        # Hent all tekst på siden etter at den er rendret
+        page_text = response.html.text
 
         if "Utsolgt" in page_text:
             return False
@@ -44,7 +35,6 @@ def check_parking_availability():
             return True
 
     except Exception as e:
-        driver.quit()
         st.error(f"⚠️ Feil ved sjekk: {e}")
         return False
 
