@@ -20,31 +20,30 @@ st.write("Sjekk om Kasernen P-hus er ledig og få SMS-varsling!")
 phone_number = st.text_input("📱 Ditt telefonnummer (+47...)", "")
 
 def check_parking_availability():
-    """Bruker httpx og selectolax for å sjekke om parkering er ledig."""
+    """Følger redirect og sjekker om parkering er tilgjengelig."""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = httpx.get(BOOKING_URL, headers=headers, timeout=10)
         
-        if response.status_code != 200:
-            st.error("⚠️ Kunne ikke hente nettsiden. Sjekk URL-en.")
-            return False
+        # Start en session for å følge redirect
+        with httpx.Client(headers=headers, follow_redirects=True) as client:
+            response = client.get(BOOKING_URL, timeout=10)
 
-        # Logg hele HTML-en vi mottar
-        raw_html = response.text
-        with open("debug_page.html", "w", encoding="utf-8") as file:
-            file.write(raw_html)
-        
-        # Parse HTML med selectolax
-        tree = HTMLParser(raw_html)
+            if response.status_code != 200:
+                st.error("⚠️ Kunne ikke hente nettsiden. Sjekk URL-en.")
+                return False
 
-        # Sjekk hva HTML-en inneholder
-        st.text_area("🔍 Debug HTML", raw_html, height=300)
+            # Parse HTML etter redirect
+            tree = HTMLParser(response.text)
 
-        # Sjekk om "Utsolgt" finnes på siden
-        if "Utsolgt" in tree.text():
-            return False
-        else:
-            return True
+            # Logg HTML for debugging (valgfritt)
+            with open("debug_page.html", "w", encoding="utf-8") as file:
+                file.write(response.text)
+
+            # Sjekk om "Utsolgt" finnes i den nye HTML-en
+            if "Utsolgt" in tree.text():
+                return False
+            else:
+                return True
 
     except Exception as e:
         st.error(f"⚠️ Feil ved sjekk: {e}")
