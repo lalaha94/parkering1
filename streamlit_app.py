@@ -1,29 +1,71 @@
-import streamlit as st
 import requests
+from bs4 import BeautifulSoup
 from twilio.rest import Client
+import os
 
-# Hent Twilio credentials fra Streamlit Secrets
-account_sid = st.secrets["TWILIO_ACCOUNT_SID"]
-auth_token = st.secrets["TWILIO_AUTH_TOKEN"]
-twilio_number = st.secrets["TWILIO_PHONE_NUMBER"]
+# Twilio konfigurasjon (Bruk secrets eller .env for sikkerhet)
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+RECIPIENT_PHONE_NUMBER = "+4797655108"  # Bytt ut med ditt nummer
 
-client = Client(account_sid, auth_token)
+# URL-er
+MAIN_URL = "https://www.aimopark.no/en/cities/kristiansand/kasernen/"
+BOOKING_URL = "https://aimopark-permit.giantleap.no/embedded-user-shop.html#/shop/select-facility/3007"
 
-st.title("🚗 Parkering SMS-Varling")
+def check_parking_availability():
+    """Sjekker om langtidsparkering er tilgjengelig på Kasernen P-hus."""
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(MAIN_URL, headers=headers)
+        response.raise_for_status()
 
-phone = st.text_input("📱 Telefonnummer (+47...)", "")
+        soup = BeautifulSoup(response.text, "html.parser")
+        booking_link = soup.find("a", class_="facilitypage__cta--longterm")
 
-if st.button("✅ Meld meg på"):
-    if phone:
-        try:
-            message = client.messages.create(
-                body="🚗 Hei! Parkeringsplassen er nå tilgjengelig! Sjekk her: https://aimopark-permit.giantleap.no/",
-                from_=twilio_number,
-                to=phone
-            )
-            st.success(f"✅ SMS sendt til {phone}!")
-        except Exception as e:
-            st.error(f"❌ Feil ved sending av SMS: {e}")
+        if booking_link:
+            print("🔗 Fant booking-knappen! Sjekker om det er ledig...")
+            return check_booking_page()
+        else:
+            print("❌ Kunne ikke finne booking-knappen. Kanskje ingen langtidsplasser?")
+            return False
+
+    except requests.RequestException as e:
+        print(f"⚠️ Feil ved henting av nettsiden: {e}")
+        return False
+
+def check_booking_page():
+    """Sjekker om parkeringsabonnementet er ledig."""
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(BOOKING_URL, headers=headers)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        if "Utsolgt" in soup.text:
+            print("🚧 Parkeringsplassen er fortsatt utsolgt.")
+            return False
+        else:
+            print("🎉 Parkeringsplassen er LEDIG!")
+            return True
+
+    except requests.RequestException as e:
+        print(f"⚠️ Feil ved henting av booking-siden: {e}")
+        return False
+
+def send_sms():
+    """Sender en SMS-varsling hvis parkering er ledig."""
+    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    message = client.messages.create(
+        body="🚗 Kasernen P-hus er NÅ LEDIG! Sjekk her: " + BOOKING_URL,
+        from_=TWILIO_PHONE_NUMBER,
+        to=RECIPIENT_PHONE_NUMBER
+    )
+    print(f"✅ SMS sendt! SID: {message.sid}")
+
+if __name__ == "__main__":
+    if check_parking_availability():
+        send_sms()
     else:
-        st.warning("⚠️ Skriv inn et gyldig telefonnummer.")
-
+        print("🔍 Fortsatt utsolgt. Ingen SMS sendt.")
