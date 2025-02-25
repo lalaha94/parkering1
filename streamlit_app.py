@@ -10,11 +10,10 @@ TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 RECIPIENT_PHONE_NUMBER = "+4797655108"  # Bytt ut med ditt nummer
 
 # URL-er
-MAIN_URL = "https://www.aimopark.no/en/cities/kristiansand/kasernen/"
 BOOKING_URL = "https://aimopark-permit.giantleap.no/embedded-user-shop.html#/shop/select-facility/3007"
 
-def check_booking_page():
-    """Sjekker om parkeringsabonnementet er ledig ved å lete etter 'Utsolgt' i riktig element."""
+def check_parking_availability():
+    """Sjekker om parkeringsabonnementet er ledig."""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(BOOKING_URL, headers=headers)
@@ -28,6 +27,9 @@ def check_booking_page():
         if sold_out_element and "Utsolgt" in sold_out_element.text:
             print("🚧 Parkeringsplassen er fortsatt utsolgt.")
             return False
+        elif "Utsolgt" in soup.text:  # Ekstra sjekk i tilfelle formatet endres
+            print("🚧 Parkeringsplassen er fortsatt utsolgt.")
+            return False
         else:
             print("🎉 Parkeringsplassen er LEDIG!")
             return True
@@ -35,8 +37,6 @@ def check_booking_page():
     except requests.RequestException as e:
         print(f"⚠️ Feil ved henting av booking-siden: {e}")
         return False
-
-
 
 def send_sms():
     """Sender en SMS-varsling hvis parkering er ledig."""
