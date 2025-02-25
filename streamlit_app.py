@@ -13,26 +13,29 @@ RECIPIENT_PHONE_NUMBER = "+4797655108"  # Bytt ut med ditt nummer
 MAIN_URL = "https://www.aimopark.no/en/cities/kristiansand/kasernen/"
 BOOKING_URL = "https://aimopark-permit.giantleap.no/embedded-user-shop.html#/shop/select-facility/3007"
 
-def check_parking_availability():
-    """Sjekker om langtidsparkering er tilgjengelig på Kasernen P-hus."""
+def check_booking_page():
+    """Sjekker om parkeringsabonnementet er ledig ved å lete etter 'Utsolgt' i riktig element."""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(MAIN_URL, headers=headers)
+        response = requests.get(BOOKING_URL, headers=headers)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "html.parser")
-        booking_link = soup.find("a", class_="facilitypage__cta--longterm")
 
-        if booking_link:
-            print("🔗 Fant booking-knappen! Sjekker om det er ledig...")
-            return check_booking_page()
-        else:
-            print("❌ Kunne ikke finne booking-knappen. Kanskje ingen langtidsplasser?")
+        # Finn elementet som inneholder "Utsolgt"
+        sold_out_element = soup.find("i18n", class_="negative")
+
+        if sold_out_element and "Utsolgt" in sold_out_element.text:
+            print("🚧 Parkeringsplassen er fortsatt utsolgt.")
             return False
+        else:
+            print("🎉 Parkeringsplassen er LEDIG!")
+            return True
 
     except requests.RequestException as e:
-        print(f"⚠️ Feil ved henting av nettsiden: {e}")
+        print(f"⚠️ Feil ved henting av booking-siden: {e}")
         return False
+
 
 def check_booking_page():
     """Sjekker om parkeringsabonnementet er ledig."""
