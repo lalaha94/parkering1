@@ -20,11 +20,11 @@ st.write("Sjekk om Kasernen P-hus er ledig og få SMS-varsling!")
 phone_number = st.text_input("📱 Ditt telefonnummer (+47...)", "")
 
 def check_parking_availability():
-    """Følger redirect og sjekker om parkering er tilgjengelig."""
+    """Følger redirect og lagrer den faktiske HTML-en for analyse."""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         
-        # Start en session for å følge redirect
+        # Følg redirect til riktig side
         with httpx.Client(headers=headers, follow_redirects=True) as client:
             response = client.get(BOOKING_URL, timeout=10)
 
@@ -32,23 +32,19 @@ def check_parking_availability():
                 st.error("⚠️ Kunne ikke hente nettsiden. Sjekk URL-en.")
                 return False
 
-            # Parse HTML etter redirect
-            tree = HTMLParser(response.text)
-
-            # Logg HTML for debugging (valgfritt)
+            # Lagre hele HTML-en for analyse
+            raw_html = response.text
             with open("debug_page.html", "w", encoding="utf-8") as file:
-                file.write(response.text)
+                file.write(raw_html)
 
-            # Sjekk om "Utsolgt" finnes i den nye HTML-en
-            if "Utsolgt" in tree.text():
-                return False
-            else:
-                return True
+            # Vis HTML i Streamlit for debugging
+            st.text_area("🔍 Debug HTML", raw_html, height=300)
+
+            return False  # Midlertidig, vi sjekker HTML manuelt
 
     except Exception as e:
         st.error(f"⚠️ Feil ved sjekk: {e}")
         return False
-
 # Funksjon for å sende SMS
 def send_sms(phone):
     """Sender en SMS-varsling hvis parkering er ledig."""
