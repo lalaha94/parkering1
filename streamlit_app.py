@@ -13,12 +13,6 @@ TWILIO_ACCOUNT_SID = st.secrets["TWILIO_ACCOUNT_SID"]
 TWILIO_AUTH_TOKEN = st.secrets["TWILIO_AUTH_TOKEN"]
 TWILIO_PHONE_NUMBER = st.secrets["TWILIO_PHONE_NUMBER"]
 
-# E-postkonfigurasjon (SendGrid, Gmail, etc.)
-SMTP_SERVER = "smtp.gmail.com"  # Eller SendGrid SMTP
-SMTP_PORT = 587
-EMAIL_USERNAME = st.secrets["EMAIL_USERNAME"]
-EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
-EMAIL_SENDER = EMAIL_USERNAME  # Avsender e-post
 
 # Liste over påmeldte mottakere
 SUBSCRIBERS = [
