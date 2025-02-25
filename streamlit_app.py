@@ -1,4 +1,4 @@
-import streamlit as st
+import app.py
 
 st.title("🎈 My new app")
 st.write(
