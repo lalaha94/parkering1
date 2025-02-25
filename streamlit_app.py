@@ -20,27 +20,42 @@ st.write("Sjekk om Kasernen P-hus er ledig og få SMS-varsling!")
 phone_number = st.text_input("📱 Ditt telefonnummer (+47...)", "")
 
 def check_parking_availability():
-    """Følger redirect og lagrer den faktiske HTML-en for analyse."""
+    """Følger redirect, finner riktig side og sjekker om parkering er ledig."""
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        
-        # Følg redirect til riktig side
+
+        # 1️⃣ Hent første side (redirect-side)
         with httpx.Client(headers=headers, follow_redirects=True) as client:
             response = client.get(BOOKING_URL, timeout=10)
 
             if response.status_code != 200:
-                st.error("⚠️ Kunne ikke hente nettsiden. Sjekk URL-en.")
+                st.error("⚠️ Kunne ikke hente nettsiden.")
                 return False
 
-            # Lagre hele HTML-en for analyse
-            raw_html = response.text
-            with open("debug_page.html", "w", encoding="utf-8") as file:
-                file.write(raw_html)
+            # 2️⃣ Finn den faktiske URL-en vi blir omdirigert til
+            final_url = str(response.url)  # Dette er den virkelige siden der "Utsolgt" vises
+            st.write(f"🔄 Omdirigert til: {final_url}")  # Debugging
 
-            # Vis HTML i Streamlit for debugging
-            st.text_area("🔍 Debug HTML", raw_html, height=300)
+            # 3️⃣ Hent den faktiske siden
+            response = client.get(final_url, timeout=10)
+            if response.status_code != 200:
+                st.error("⚠️ Kunne ikke hente den endelige siden.")
+                return False
 
-            return False  # Midlertidig, vi sjekker HTML manuelt
+            # 4️⃣ Parse HTML og sjekk for "Utsolgt"
+            tree = HTMLParser(response.text)
+
+            # Lagre HTML for debugging
+            with open("debug_page_final.html", "w", encoding="utf-8") as file:
+                file.write(response.text)
+
+            st.text_area("🔍 Debug HTML (Final Page)", response.text, height=300)
+
+            # 5️⃣ Se etter "Utsolgt"
+            if "Utsolgt" in tree.text():
+                return False
+            else:
+                return True
 
     except Exception as e:
         st.error(f"⚠️ Feil ved sjekk: {e}")
